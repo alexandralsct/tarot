@@ -1,10 +1,12 @@
 {
+  "id": "/tarot/feuille-de-tarot",
   "name": "Feuille de tarot",
-  "short_name": "Tarot",
+  "short_name": "Feuille de tarot",
   "lang": "fr",
-  "start_url": ".",
-  "scope": ".",
+  "start_url": "/tarot/",
+  "scope": "/tarot/",
   "display": "standalone",
+  "prefer_related_applications": false,
   "background_color": "#0f3d31",
   "theme_color": "#0f3d31",
   "icons": [

@@ -1,4 +1,4 @@
-const CACHE = 'tarot-v1';
+const CACHE = 'tarot-v2';
 // La page n'est pas passée par ce fichier à la première visite : on la garde dès l'installation.
 self.addEventListener('install', e => e.waitUntil(
   caches.open(CACHE).then(c => c.addAll(['.', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'])).then(() => self.skipWaiting())

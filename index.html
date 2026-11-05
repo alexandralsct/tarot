@@ -86,6 +86,7 @@ summary { cursor: pointer; min-height: 32px; }
 
 body { margin: 0; }
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--tapis); }
+#installer { position: fixed; z-index: 5; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--carte); color: var(--encre); border: 0; border-radius: 10px; padding: 12px 16px; min-height: 48px; font-weight: 700; box-shadow: 0 4px 14px rgb(0 0 0 / .35); }
 </style>
 </head>
 <body>
@@ -407,8 +408,20 @@ app.addEventListener('keydown', e => {
 });
 rendre();
 </script>
+<button type="button" id="installer" hidden>Installer l'app</button>
 <script>
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// Chrome ne propose l'installation que s'il juge l'app installable : le bouton n'apparaît que dans ce cas.
+let demandeInstallation = null;
+const boutonInstaller = document.getElementById('installer');
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); demandeInstallation = e; boutonInstaller.hidden = false; });
+window.addEventListener('appinstalled', () => { demandeInstallation = null; boutonInstaller.hidden = true; });
+boutonInstaller.addEventListener('click', async () => {
+  if (!demandeInstallation) return;
+  demandeInstallation.prompt();
+  await demandeInstallation.userChoice;
+  demandeInstallation = null; boutonInstaller.hidden = true;
+});
 </script>
 </body>
 </html>
