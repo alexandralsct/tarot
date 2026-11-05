@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f3d31">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>Feuille de tarot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Mise en page : une table de jeu. Le tapis vert porte l'interface, les cartes ivoire portent les scores. Un seul thème, par choix. */
+:root {
+  --tapis: #0f3d31; --tapis-clair: #17503f; --trait: #2f6b58;
+  --carte: #f2ecdc; --encre: #1c2421; --encre-pale: #5d665f;
+  --clair: #eef3ea; --pale: #a9c4b6;
+  --or: #e0b040; --rouge: #b3261e; --rouge-clair: #ffb4a6;
+  --titre: "Alegreya SC", Georgia, serif;
+  --texte: "Alegreya Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { background: var(--tapis); color: var(--clair); font: 17px/1.35 var(--texte); font-variant-numeric: lining-nums tabular-nums; }
+#app { max-width: 560px; margin: 0 auto; padding-block: 16px 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
+h1 { font: 700 30px/1.1 var(--titre); margin: 0; }
+h2 { font: 500 14px/1.2 var(--texte); letter-spacing: .08em; text-transform: uppercase; color: var(--pale); margin: 0; }
+.tete { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bloc { display: flex; flex-direction: column; gap: 8px; }
+.note { color: var(--pale); font-size: 15px; margin: 0; }
+
+.lien { background: none; border: 1px solid var(--trait); border-radius: 8px; padding: 8px 12px; min-height: 42px; font-size: 15px; white-space: nowrap; }
+.principal { background: var(--or); color: var(--encre); border: 0; border-radius: 10px; padding: 14px 16px; min-height: 52px; width: 100%; font-weight: 700; font-size: 18px; }
+.principal:disabled { background: var(--tapis-clair); color: var(--pale); cursor: default; }
+.danger { background: none; border: 1px solid var(--rouge-clair); color: var(--rouge-clair); border-radius: 8px; padding: 10px 12px; min-height: 44px; }
+
+.bandeau { background: var(--tapis-clair); border-radius: 10px; padding: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.bandeau p { margin: 0; flex: 1 1 180px; min-width: 0; }
+
+/* Les cartes des joueurs : le rang est écrit en chiffres romains, comme sur les atouts. */
+.table { display: grid; gap: 6px; }
+.joueur { background: var(--carte); color: var(--encre); border-radius: 8px; padding: 6px 6px 10px; min-width: 0; text-align: center; border: 2px solid transparent; }
+.joueur.tete-course { border-color: var(--or); }
+.rang { display: block; text-align: left; font: 700 13px/1 var(--titre); color: var(--encre-pale); }
+.nom { display: block; font-size: 14px; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.total { display: block; font-weight: 700; font-size: clamp(17px, 5.4vw, 26px); line-height: 1.15; }
+.total.neg { color: var(--rouge); }
+.joueur.absent { opacity: .55; }
+.vide { color: var(--pale); }
+.ajout { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+
+.donnes { display: flex; flex-direction: column; gap: 6px; }
+.donne { width: 100%; text-align: left; background: var(--tapis-clair); border: 0; border-radius: 8px; padding: 8px 6px; display: flex; flex-direction: column; gap: 4px; }
+.donne .quoi { font-size: 15px; color: var(--pale); padding-inline: 2px; }
+.donne .quoi b { color: var(--clair); font-weight: 500; }
+.lignes { display: grid; gap: 6px; text-align: center; font-weight: 500; font-size: 15px; }
+.neg { color: var(--rouge-clair); }
+
+.choix { display: flex; flex-wrap: wrap; gap: 6px; }
+.choix button { flex: 1 1 auto; min-height: 46px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--trait); background: var(--tapis-clair); min-width: 0; line-height: 1.15; }
+.choix button small { display: block; font-size: 13px; color: var(--pale); }
+.choix button[aria-pressed="true"] { background: var(--carte); color: var(--encre); border-color: var(--carte); font-weight: 700; }
+.choix button[aria-pressed="true"] small { color: var(--encre-pale); font-weight: 400; }
+.compteur { display: grid; grid-template-columns: 52px 1fr 52px; gap: 6px; }
+.compteur button { border: 1px solid var(--trait); background: var(--tapis-clair); border-radius: 8px; font-size: 22px; min-height: 52px; }
+input[type="text"] { width: 100%; min-height: 46px; padding: 8px 12px; background: var(--carte); color: var(--encre); border: 0; border-radius: 8px; min-width: 0; }
+#pts { text-align: center; font-size: 24px; font-weight: 700; }
+
+.resultat { position: sticky; bottom: 0; background: var(--carte); color: var(--encre); border-radius: 12px 12px 0 0; margin-inline: -4px; padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; box-shadow: 0 -8px 20px rgb(0 0 0 / .3); }
+.verdict { margin: 0; font-weight: 700; }
+.resultat .lignes { font-size: 14px; }
+.resultat .lignes span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; color: var(--encre-pale); }
+.resultat .lignes b { font-size: 17px; color: var(--encre); }
+.resultat .lignes b.neg { color: var(--rouge); }
+.resultat .principal:disabled { background: #d9d2bf; color: var(--encre-pale); }
+
+details { border-top: 1px solid var(--trait); padding-top: 12px; }
+summary { cursor: pointer; min-height: 32px; }
+.bareme { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 15px; }
+.bareme td { padding: 4px 0; border-bottom: 1px solid var(--tapis-clair); vertical-align: top; }
+.bareme td:last-child { text-align: right; padding-left: 12px; }
+
+body { margin: 0; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--tapis); }
+</style>
+</head>
+<body>
+<main id="app"></main>
+
+<script>
+/*calc*/
+const CONTRATS = { petite: { nom: 'Petite', mu: 1 }, garde: { nom: 'Garde', mu: 2 }, sans: { nom: 'Garde sans', mu: 4 }, contre: { nom: 'Garde contre', mu: 6 } };
+const CIBLES = [56, 51, 41, 36];
+const POIGNEES = { simple: 20, double: 30, triple: 40 };
+const ATOUTS = { 3: [13, 15, 18], 4: [10, 13, 15], 5: [8, 10, 13] };
+const CHELEMS = { annonce: 400, rate: -200, surprise: 200 };
+
+// d : { preneur, appele (5 joueurs ; null = seul), contrat, bouts, pts, compte, petit, poignees, chelem }
+function calculer(d, n) {
+  const attaque = d.compte === 'defense' ? 91 - d.pts : d.pts;
+  const ecart = attaque - CIBLES[d.bouts];
+  const reussi = ecart >= 0;
+  const sens = reussi ? 1 : -1;
+  // Un demi-point compte pour un point entier : réussi de 0,5 = 1, chuté de 0,5 = 1.
+  const marge = Math.ceil(Math.abs(ecart));
+  const petit = d.petit === 'attaque' ? 10 : d.petit === 'defense' ? -10 : 0;
+  const poignees = (d.poignees || []).reduce((t, p) => t + (POIGNEES[p] || 0), 0);
+  const s = (sens * (25 + marge) + petit) * CONTRATS[d.contrat].mu + sens * poignees + (CHELEMS[d.chelem] || 0);
+  const parts = Array(n).fill(-s);
+  if (n === 5 && d.appele != null) { parts[d.preneur] = 2 * s; parts[d.appele] = s; }
+  else parts[d.preneur] = (n - 1) * s;
+  return { attaque, reussi, marge, cible: CIBLES[d.bouts], s, parts: parts.map(x => x || 0) };
+}
+/*fin*/
+
+const CLE = 'tarot.partie';
+const exemple = () => ({ exemple: true, joueurs: ['Anne', 'Bruno', 'Chloé', 'David'], donnes: [
+  { preneur: 0, appele: null, contrat: 'garde', bouts: 2, pts: 47, compte: 'attaque', petit: null, poignees: [], chelem: '' },
+  { preneur: 1, appele: null, contrat: 'petite', bouts: 1, pts: 48, compte: 'attaque', petit: null, poignees: [], chelem: '' },
+  { preneur: 2, appele: null, contrat: 'sans', bouts: 3, pts: 44, compte: 'attaque', petit: 'attaque', poignees: ['simple'], chelem: '' },
+  { preneur: 3, appele: null, contrat: 'garde', bouts: 1, pts: 50.5, compte: 'attaque', petit: null, poignees: [], chelem: '' },
+] });
+
+// partie.joueurs : tous ceux qui ont joué. partie.table : ceux qui jouent maintenant. Chaque donne garde sa table :
+// d.preneur et d.appele sont des places dans d.table, ce qui permet de changer de table sans toucher aux scores.
+function normaliser(p) {
+  const tous = p.joueurs.map((_, i) => i);
+  p.table = p.table || tous;
+  p.depart = p.depart || 0;
+  p.donnes.forEach(d => { d.table = d.table || tous; });
+  return p;
+}
+function charger() { try { const j = JSON.parse(localStorage.getItem(CLE)); if (j && j.joueurs) return normaliser(j); } catch (e) {} return normaliser(exemple()); }
+function garder() { try { localStorage.setItem(CLE, JSON.stringify(partie)); } catch (e) {} }
+
+const CLE_CARNET = 'tarot.carnet';
+function chargerCarnet() { try { const c = JSON.parse(localStorage.getItem(CLE_CARNET)); if (Array.isArray(c)) return c; } catch (e) {} return []; }
+function garderCarnet() { try { localStorage.setItem(CLE_CARNET, JSON.stringify(carnet)); } catch (e) {} }
+
+let partie = charger();
+let carnet = chargerCarnet();
+if (!carnet.length && !partie.exemple) carnet = [...partie.joueurs];
+let vue = 'partie';       // partie | reglage | donne
+let brouillon = null;     // la donne en cours de saisie
+let index = null;         // la donne modifiée, null pour une nouvelle
+let confirmer = false;
+let reglage = null;
+
+const app = document.getElementById('app');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const signe = x => (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x);
+const virgule = x => String(x).replace('.', ',');
+const ROMAINS = ['I', 'II', 'III', 'IV', 'V'];
+
+function lirePoints(t) {
+  const v = parseFloat(String(t).replace(',', '.'));
+  return Number.isFinite(v) && v >= 0 && v <= 91 && Number.isInteger(v * 2) ? v : null;
+}
+
+function totaux() {
+  const t = Array(partie.joueurs.length).fill(0);
+  partie.donnes.forEach(d => calculer(d, d.table.length).parts.forEach((x, i) => t[d.table[i]] += x));
+  return t;
+}
+
+function choix(cle, options, valeur) {
+  return `<div class="choix" role="group">${options.map(o => `<button type="button" data-cle="${cle}" data-val="${esc(o.val)}" aria-pressed="${String(o.val) === String(valeur)}">${esc(o.nom)}${o.sous ? `<small>${esc(o.sous)}</small>` : ''}</button>`).join('')}</div>`;
+}
+
+function vuePartie() {
+  const n = partie.joueurs.length, t = totaux();
+  const max = Math.max(...t);
+  const colonnes = `style="grid-template-columns:repeat(${n},minmax(0,1fr))"`;
+  const cartes = partie.joueurs.map((j, i) => {
+    const rang = t.filter(x => x > t[i]).length;
+    return `<div class="joueur${partie.donnes.length && t[i] === max ? ' tete-course' : ''}${partie.table.includes(i) ? '' : ' absent'}"><span class="rang">${ROMAINS[rang]}</span><span class="nom">${esc(j)}</span><span class="total${t[i] < 0 ? ' neg' : ''}">${signe(t[i]) || 0}</span></div>`;
+  }).join('');
+  const lignes = partie.donnes.map((d, i) => {
+    const r = calculer(d, d.table.length);
+    const parts = partie.joueurs.map((_, k) => {
+      const place = d.table.indexOf(k);
+      if (place < 0) return '<span class="vide">·</span>';
+      const x = r.parts[place];
+      return `<span class="${x < 0 ? 'neg' : ''}">${signe(x) || 0}</span>`;
+    }).join('');
+    return `<button type="button" class="donne" data-action="modifier" data-i="${i}" aria-label="Modifier la donne ${i + 1}">
+      <span class="quoi">${i + 1}. <b>${esc(partie.joueurs[d.table[d.preneur]])}</b> · ${CONTRATS[d.contrat].nom} · ${r.reussi ? 'réussi' : 'chuté'} de ${r.marge}</span>
+      <span class="lignes" ${colonnes}>${parts}</span></button>`;
+  }).reverse().join('');
+  return `
+    <div class="tete"><h1>Feuille de tarot</h1><button type="button" class="lien" data-action="nouvelle">Nouvelle partie</button></div>
+    ${partie.exemple ? `<div class="bandeau"><p>Ceci est une partie d'exemple.</p><button type="button" class="lien" data-action="reglage">Commencer la mienne</button></div>` : ''}
+    ${confirmer ? `<div class="bandeau"><p>Effacer la partie en cours ?</p><button type="button" class="danger" data-action="reglage">Oui, effacer</button><button type="button" class="lien" data-action="annuler">Non</button></div>` : ''}
+    <div class="table" ${colonnes}>${cartes}</div>
+    <div class="bloc">
+      <button type="button" class="principal" data-action="ajouter">Ajouter une donne</button>
+      <p class="note">À ${esc(partie.joueurs[partie.table[(((partie.donnes.length - partie.depart) % partie.table.length) + partie.table.length) % partie.table.length]])} de distribuer.</p>
+    </div>
+    <section class="bloc"><h2>Joueurs à la table · touche pour changer</h2>${choix('table', [3, 4, 5].map(v => ({ val: v, nom: v })), partie.table.length)}</section>
+    ${lignes ? `<section class="bloc"><h2>Donnes · touche pour corriger</h2><div class="donnes">${lignes}</div></section>` : ''}
+    ${bareme(partie.table.length)}`;
+}
+
+function bareme(n) {
+  const [a, b, c] = ATOUTS[n];
+  const part = n === 5 ? 'Preneur ×2, appelé ×1, les autres ×−1 chacun. Seul : preneur ×4.' : `Preneur ×${n - 1}, les autres ×−1 chacun.`;
+  return `<details><summary>Barème à ${n} joueurs</summary><table class="bareme">
+    <tr><td>Score d'une donne</td><td>(25 + écart ± petit au bout) × contrat ± poignées + chelem</td></tr>
+    <tr><td>Points à faire</td><td>0 bout 56 · 1 bout 51 · 2 bouts 41 · 3 bouts 36</td></tr>
+    <tr><td>Contrats</td><td>Petite ×1 · Garde ×2 · Garde sans ×4 · Garde contre ×6</td></tr>
+    <tr><td>Petit au bout</td><td>10 × contrat, pour le camp qui le mène</td></tr>
+    <tr><td>Poignées</td><td>${a} atouts 20 · ${b} atouts 30 · ${c} atouts 40, pour le camp gagnant</td></tr>
+    <tr><td>Chelem</td><td>Annoncé réussi +400 · annoncé raté −200 · non annoncé réussi +200</td></tr>
+    <tr><td>Répartition</td><td>${part}</td></tr></table></details>`;
+}
+
+function vueReglage() {
+  const { n, sel } = reglage;
+  const manque = n - sel.length;
+  const garde = gardeScores();
+  const absents = carnet.filter(j => !sel.includes(j));
+  return `
+    <div class="tete"><h1>${reglage.nouvelle ? 'Nouvelle partie' : 'Joueurs'}</h1><button type="button" class="lien" data-action="retour">Retour</button></div>
+    <section class="bloc"><h2>Nombre de joueurs</h2>${choix('n', [3, 4, 5].map(v => ({ val: v, nom: v })), n)}</section>
+    <section class="bloc"><h2>À la table, en commençant par qui distribue</h2>
+      ${carnet.length ? `<div class="choix" role="group">${carnet.map(j => {
+        const place = sel.indexOf(j);
+        return `<button type="button" data-cle="joueur" data-val="${esc(j)}" aria-pressed="${place >= 0}">${esc(j)}<small>${place >= 0 ? 'place ' + (place + 1) : 'absent'}</small></button>`;
+      }).join('')}</div>` : '<p class="note">Ajoute les prénoms : ils seront gardés pour les prochaines parties.</p>'}
+      <div class="ajout"><input type="text" id="ajout" aria-label="Prénom à ajouter" placeholder="Nouveau prénom" value="${esc(reglage.saisie)}" autocomplete="off" enterkeyhint="done"><button type="button" class="lien" data-action="ajouterNom">Ajouter</button></div>
+    </section>
+    <div class="bloc">
+      ${manque > 0 ? `<p class="note">Choisis ou ajoute encore ${manque} joueur${manque > 1 ? 's' : ''}.</p>` : ''}
+      ${garde ? '<p class="note">Les scores de la partie en cours sont gardés.</p>' : ''}
+      <button type="button" class="principal" data-action="commencer" ${manque > 0 ? 'disabled' : ''}>${garde ? 'Continuer avec ces joueurs' : 'Commencer la partie'}</button>
+    </div>
+    ${absents.length ? `<details><summary>Retirer un prénom du carnet</summary><div class="choix" style="margin-top:8px">${absents.map(j => `<button type="button" data-cle="oublier" data-val="${esc(j)}">${esc(j)}</button>`).join('')}</div></details>` : ''}`;
+}
+
+const gardeScores = () => !reglage.nouvelle && !partie.exemple && partie.donnes.length > 0;
+
+// Complète ou réduit la table jusqu'à n joueurs, en piochant dans le carnet.
+function ajuster(n) {
+  const sel = reglage.sel.slice(0, n);
+  carnet.forEach(j => { if (sel.length < n && !sel.includes(j)) sel.push(j); });
+  reglage.n = n; reglage.sel = sel;
+}
+
+function ouvrirReglage(n, nouvelle) {
+  const sel = partie.exemple ? [] : partie.table.map(i => partie.joueurs[i]);
+  reglage = { n: 4, sel, saisie: '', nouvelle };
+  ajuster(n || (sel.length || 4));
+  vue = 'reglage'; confirmer = false; rendre();
+}
+
+// À 5 joueurs, le preneur joue avec l'appelé, sauf s'il est seul.
+const avecAppele = () => brouillon.table.length === 5 && brouillon.appele !== null;
+
+function vueDonne() {
+  const b = brouillon, n = b.table.length, j = b.table.map(i => partie.joueurs[i]);
+  const appele = avecAppele();
+  const noms = j.map((nom, i) => ({ val: i, nom }));
+  const [a1, a2, a3] = ATOUTS[n];
+  const optPoignee = [{ val: '', nom: 'Aucune' }, { val: 'simple', nom: 'Simple', sous: `${a1} atouts` }, { val: 'double', nom: 'Double', sous: `${a2} atouts` }, { val: 'triple', nom: 'Triple', sous: `${a3} atouts` }];
+  return `
+    <div class="tete"><h1>Donne ${index === null ? partie.donnes.length + 1 : index + 1}</h1><button type="button" class="lien" data-action="retour">Retour</button></div>
+    <section class="bloc"><h2>Preneur</h2>${choix('preneur', noms, b.preneur)}</section>
+    ${n === 5 ? `<section class="bloc"><h2>Joueur appelé</h2>${choix('appele', [...noms.filter(o => o.val !== b.preneur), { val: 'seul', nom: 'Seul' }], b.appele === null ? 'seul' : b.appele)}</section>` : ''}
+    <section class="bloc"><h2>Contrat</h2>${choix('contrat', Object.entries(CONTRATS).map(([val, c]) => ({ val, nom: c.nom, sous: '×' + c.mu })), b.contrat)}</section>
+    <section class="bloc"><h2>Bouts ${appele ? "du preneur et de l'appelé" : 'du preneur'}</h2>${choix('bouts', CIBLES.map((c, i) => ({ val: i, nom: i, sous: c + ' pts' })), b.bouts)}</section>
+    <section class="bloc"><h2>Points comptés</h2>
+      ${choix('compte', [{ val: 'attaque', nom: appele ? "Par le preneur et l'appelé" : 'Par le preneur' }, { val: 'defense', nom: 'Par les autres' }], b.compte)}
+      <div class="compteur"><button type="button" data-action="moins" aria-label="Un point de moins">−</button><input type="text" id="pts" inputmode="decimal" aria-label="Points, de 0 à 91" placeholder="0 à 91" value="${esc(b.pts)}" autocomplete="off"><button type="button" data-action="plus" aria-label="Un point de plus">+</button></div>
+    </section>
+    <section class="bloc"><h2>Petit au bout</h2>${choix('petit', [{ val: '', nom: 'Non' }, { val: 'attaque', nom: appele ? 'Preneur et appelé' : 'Preneur' }, { val: 'defense', nom: 'Les autres' }], b.petit || '')}</section>
+    <section class="bloc"><h2>Poignée</h2>${choix('p0', optPoignee, b.poignees[0] || '')}
+      ${b.poignees[0] ? `<p class="note">Une deuxième poignée, dans l'autre camp ?</p>${choix('p1', optPoignee, b.poignees[1] || '')}` : ''}</section>
+    <section class="bloc"><h2>Chelem</h2>${choix('chelem', [{ val: '', nom: 'Non' }, { val: 'annonce', nom: 'Annoncé réussi', sous: '+400' }, { val: 'rate', nom: 'Annoncé raté', sous: '−200' }, { val: 'surprise', nom: 'Non annoncé réussi', sous: '+200' }], b.chelem)}</section>
+    ${index !== null ? `<button type="button" class="danger" data-action="${confirmer ? 'supprimer' : 'demander'}">${confirmer ? 'Confirmer la suppression' : 'Supprimer cette donne'}</button>` : ''}
+    <div class="resultat" id="resultat" aria-live="polite"></div>`;
+}
+
+// La donne prête à calculer, ou ce qu'il manque.
+function verifier() {
+  const b = brouillon, n = b.table.length;
+  if (b.preneur === null) return { manque: 'Choisis le preneur.' };
+  if (n === 5 && b.appele === undefined) return { manque: 'Choisis le joueur appelé, ou Seul.' };
+  if (b.bouts === null) return { manque: `Indique les bouts ${avecAppele() ? "du preneur et de l'appelé" : 'du preneur'}.` };
+  const pts = lirePoints(b.pts);
+  if (String(b.pts).trim() === '') return { manque: 'Saisis les points comptés.' };
+  if (pts === null) return { manque: 'Les points vont de 0 à 91, par demi-point.' };
+  return { d: { ...b, pts, appele: n === 5 ? b.appele : null, petit: b.petit || null, poignees: b.poignees.filter(Boolean) } };
+}
+
+function majResultat() {
+  const zone = document.getElementById('resultat');
+  if (!zone || !brouillon) return;
+  const n = brouillon.table.length, v = verifier();
+  let haut = `<p class="verdict">${v.manque || ''}</p>`;
+  if (v.d) {
+    const r = calculer(v.d, n);
+    const col = `style="grid-template-columns:repeat(${n},minmax(0,1fr))"`;
+    haut = `<p class="verdict">${r.reussi ? 'Réussi' : 'Chuté'} de ${r.marge} · ${avecAppele() ? 'preneur et appelé' : 'preneur'} ${virgule(r.attaque)} pour ${r.cible}</p>
+      <div class="lignes" ${col}>${brouillon.table.map(i => `<span>${esc(partie.joueurs[i])}</span>`).join('')}${r.parts.map(x => `<b class="${x < 0 ? 'neg' : ''}">${signe(x) || 0}</b>`).join('')}</div>`;
+  }
+  zone.innerHTML = `${haut}<button type="button" class="principal" data-action="enregistrer" ${v.d ? '' : 'disabled'}>${index === null ? 'Enregistrer la donne' : 'Enregistrer la correction'}</button>`;
+}
+
+function rendre(garderHaut) {
+  const y = window.scrollY;
+  app.innerHTML = vue === 'donne' ? vueDonne() : vue === 'reglage' ? vueReglage() : vuePartie();
+  majResultat();
+  window.scrollTo(0, garderHaut ? y : 0);
+}
+
+const nouveau = () => ({ table: [...partie.table], preneur: null, appele: undefined, contrat: 'garde', bouts: null, pts: '', compte: 'attaque', petit: '', poignees: [], chelem: '' });
+
+const ACTIONS = {
+  ajouter() { brouillon = nouveau(); index = null; vue = 'donne'; confirmer = false; rendre(); },
+  modifier(el) {
+    index = +el.dataset.i; const d = partie.donnes[index];
+    brouillon = { ...d, pts: virgule(d.pts), petit: d.petit || '', poignees: [...(d.poignees || [])] };
+    vue = 'donne'; confirmer = false; rendre();
+  },
+  retour() { vue = 'partie'; confirmer = false; rendre(); },
+  annuler() { confirmer = false; rendre(true); },
+  nouvelle() { if (partie.exemple) ACTIONS.reglage(); else { confirmer = true; rendre(); } },
+  reglage() { ouvrirReglage(null, true); },
+  ajouterNom() {
+    const nom = reglage.saisie.trim();
+    reglage.saisie = '';
+    if (nom) {
+      const connu = carnet.find(j => j.toLowerCase() === nom.toLowerCase());
+      if (!connu) { carnet.push(nom); garderCarnet(); }
+      const j = connu || nom;
+      if (!reglage.sel.includes(j) && reglage.sel.length < 5) {
+        reglage.sel.push(j);
+        reglage.n = Math.max(reglage.n, reglage.sel.length);
+      }
+    }
+    rendre(true);
+    document.getElementById('ajout').focus();
+  },
+  commencer() {
+    const { n, sel } = reglage;
+    if (sel.length !== n) return;
+    if (gardeScores()) {
+      sel.forEach(j => { if (!partie.joueurs.includes(j)) partie.joueurs.push(j); });
+      partie.table = sel.map(j => partie.joueurs.indexOf(j));
+      partie.depart = partie.donnes.length;
+    } else partie = normaliser({ joueurs: [...sel], donnes: [] });
+    garder(); vue = 'partie'; rendre();
+  },
+  moins() { pas(-1); },
+  plus() { pas(1); },
+  demander() { confirmer = true; rendre(true); },
+  supprimer() { partie.donnes.splice(index, 1); garder(); vue = 'partie'; confirmer = false; rendre(); },
+  enregistrer() {
+    const v = verifier(); if (!v.d) return;
+    if (index === null) partie.donnes.push(v.d); else partie.donnes[index] = v.d;
+    garder(); vue = 'partie'; rendre();
+  },
+};
+
+function pas(k) {
+  const v = lirePoints(brouillon.pts);
+  brouillon.pts = virgule(Math.min(91, Math.max(0, (v === null ? 45 : v) + k)));
+  document.getElementById('pts').value = brouillon.pts;
+  majResultat();
+}
+
+function poser(cle, val) {
+  const b = brouillon;
+  if (cle === 'table') { ouvrirReglage(+val, false); return; }
+  if (cle === 'n') { ajuster(+val); rendre(true); return; }
+  if (cle === 'joueur') {
+    const sel = reglage.sel, place = sel.indexOf(val);
+    if (place >= 0) sel.splice(place, 1); else if (sel.length < 5) sel.push(val);
+    reglage.n = Math.min(5, Math.max(3, sel.length));
+    rendre(true); return;
+  }
+  if (cle === 'oublier') { carnet = carnet.filter(j => j !== val); garderCarnet(); rendre(true); return; }
+  if (cle === 'preneur') { b.preneur = +val; if (b.appele === b.preneur) b.appele = undefined; }
+  else if (cle === 'appele') b.appele = val === 'seul' ? null : +val;
+  else if (cle === 'bouts') b.bouts = +val;
+  else if (cle === 'p0') b.poignees = val ? [val, b.poignees[1] || ''] : [];
+  else if (cle === 'p1') b.poignees = [b.poignees[0], val];
+  else b[cle] = val;
+  rendre(true);
+}
+
+app.addEventListener('click', e => {
+  const el = e.target.closest('button'); if (!el) return;
+  if (el.dataset.cle) poser(el.dataset.cle, el.dataset.val);
+  else if (el.dataset.action) ACTIONS[el.dataset.action](el);
+});
+app.addEventListener('input', e => {
+  if (e.target.id === 'pts') { brouillon.pts = e.target.value; majResultat(); }
+  if (e.target.id === 'ajout') reglage.saisie = e.target.value;
+});
+app.addEventListener('keydown', e => {
+  if (e.target.id === 'ajout' && e.key === 'Enter') { e.preventDefault(); ACTIONS.ajouterNom(); }
+});
+rendre();
+</script>
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
